@@ -36,15 +36,14 @@ type Client struct {
 	pendingAsynCall int           //待处理的异步调用
 }
 
-//创建服务器
+//创建rpc服务器
 func NewServer(l int) *Server {
 	//创建服务器
 	s := new(Server)
-	//为id->func映射分配内存
+	//创建id->func映射
 	s.functions = make(map[interface{}]interface{})
-	//为调用信息管道分配内存
+	//创建调用信息管道
 	s.ChanCall = make(chan *CallInfo, l)
-
 	return s
 }
 
@@ -63,7 +62,7 @@ func (s *Server) Register(id interface{}, f interface{}) {
 		panic(fmt.Sprintf("function id %v: definition of function is invalid", id))
 	}
 
-	//映射已存在，抛出错误
+	//映射已存在
 	if _, ok := s.functions[id]; ok {
 		panic(fmt.Sprintf("function id %v: already registered", id))
 	}
@@ -74,7 +73,7 @@ func (s *Server) Register(id interface{}, f interface{}) {
 
 //返回
 func (s *Server) ret(ci *CallInfo, ri *RetInfo) (err error) {
-	//返回管道不能为空
+	//返回管道为空
 	if ci.chanRet == nil {
 		return
 	}
@@ -125,7 +124,7 @@ func (s *Server) Exec(ci *CallInfo) (err error) {
 		return s.ret(ci, &RetInfo{ret: ret})
 	}
 
-	//执行调用失败，抛出错误
+	//执行调用失败
 	panic("bug")
 }
 
@@ -133,7 +132,6 @@ func (s *Server) Exec(ci *CallInfo) (err error) {
 func (s *Server) Go(id interface{}, args ...interface{}) {
 	//根据id获取所映射的func
 	f := s.functions[id]
-
 	//func未注册
 	if f == nil {
 		return
@@ -169,14 +167,13 @@ func (s *Server) Open(l int) *Client {
 	c.chanSyncRet = make(chan *RetInfo, 1)
 	//为异步调用返回信息管道分配内存，管道大小为l
 	c.ChanAsynRet = make(chan *RetInfo, l)
-
 	return c
 }
 
 //根据id获取所映射的func
 func (c *Client) f(id interface{}, n int) (f interface{}, err error) {
+	//根据id获取所映射的func
 	f = c.s.functions[id]
-
 	//func未注册
 	if f == nil {
 		err = fmt.Errorf("function id %v: function not registered", id)
@@ -185,7 +182,7 @@ func (c *Client) f(id interface{}, n int) (f interface{}, err error) {
 
 	var ok bool
 
-	//根据n的值判断func类型是否匹配
+	//根据n的值，检查func类型是否匹配
 	switch n {
 	case 0: //n为0，无返回值
 		_, ok = f.(func([]interface{}))
@@ -231,19 +228,13 @@ func (c *Client) call(ci *CallInfo, block bool) (err error) {
 func (c *Client) Call0(id interface{}, args ...interface{}) error {
 	//根据id获取所映射的func
 	f, err := c.f(id, 0)
-
 	//func未注册或func类型不匹配
 	if err != nil {
 		return err
 	}
 
 	//发起调用
-	err = c.call(&CallInfo{
-		f:       f,
-		args:    args,
-		chanRet: c.chanSyncRet, //同步调用返回管道
-	}, true)
-
+	err = c.call(&CallInfo{f: f, args: args, chanRet: c.chanSyncRet}, true)
 	//调用失败
 	if err != nil {
 		return err
@@ -251,7 +242,6 @@ func (c *Client) Call0(id interface{}, args ...interface{}) error {
 
 	//读取结果（阻塞）
 	ri := <-c.chanSyncRet
-
 	return ri.err
 }
 
@@ -259,19 +249,13 @@ func (c *Client) Call0(id interface{}, args ...interface{}) error {
 func (c *Client) Call1(id interface{}, args ...interface{}) (interface{}, error) {
 	//根据id获取所映射的func
 	f, err := c.f(id, 1)
-
 	//func未注册或func类型不匹配
 	if err != nil {
 		return nil, err
 	}
 
 	//发起调用
-	err = c.call(&CallInfo{
-		f:       f,
-		args:    args,
-		chanRet: c.chanSyncRet,
-	}, true)
-
+	err = c.call(&CallInfo{f: f, args: args, chanRet: c.chanSyncRet}, true)
 	//调用失败
 	if err != nil {
 		return nil, err
@@ -279,7 +263,6 @@ func (c *Client) Call1(id interface{}, args ...interface{}) (interface{}, error)
 
 	//读取结果（阻塞）
 	ri := <-c.chanSyncRet
-
 	return ri.ret, ri.err
 }
 
@@ -287,19 +270,13 @@ func (c *Client) Call1(id interface{}, args ...interface{}) (interface{}, error)
 func (c *Client) CallN(id interface{}, args ...interface{}) ([]interface{}, error) {
 	//根据id获取所映射的func
 	f, err := c.f(id, 2)
-
 	//func未注册或func类型不匹配
 	if err != nil {
 		return nil, err
 	}
 
 	//发起调用
-	err = c.call(&CallInfo{
-		f:       f,
-		args:    args,
-		chanRet: c.chanSyncRet,
-	}, true)
-
+	err = c.call(&CallInfo{f: f, args: args, chanRet: c.chanSyncRet}, true)
 	//调用失败
 	if err != nil {
 		return nil, err
@@ -307,7 +284,6 @@ func (c *Client) CallN(id interface{}, args ...interface{}) ([]interface{}, erro
 
 	//读取结果（阻塞）
 	ri := <-c.chanSyncRet
-
 	return ri.ret.([]interface{}), ri.err
 }
 
@@ -315,20 +291,13 @@ func (c *Client) CallN(id interface{}, args ...interface{}) ([]interface{}, erro
 func (c *Client) asynCall(id interface{}, args []interface{}, cb interface{}, n int) error {
 	//根据id获取所映射的func
 	f, err := c.f(id, n)
-
 	//func未注册或func类型不匹配
 	if err != nil {
 		return err
 	}
 
 	//发起调用
-	err = c.call(&CallInfo{
-		f:       f,
-		args:    args,
-		chanRet: c.ChanAsynRet, //异步调用返回管道
-		cb:      cb,
-	}, false)
-
+	err = c.call(&CallInfo{f: f, args: args, chanRet: c.ChanAsynRet, cb: cb}, false)
 	//调用失败
 	if err != nil {
 		return err
@@ -336,20 +305,18 @@ func (c *Client) asynCall(id interface{}, args []interface{}, cb interface{}, n 
 
 	//增加计数器（待处理的异步调用）
 	c.pendingAsynCall++
-
 	return nil
 }
 
 //发起异步调用（导出），需要自己写c.Cb(<-c.ChanAsynRet)来执行回调
 func (c *Client) AsynCall(id interface{}, _args ...interface{}) {
-	//未提供回调函数参数，抛出错误（_args最后一个元素是回调函数，前面的是rpc调用的参数）
+	//未提供回调参数（_args最后一个元素是回调函数，前面的是rpc调用的参数）
 	if len(_args) < 1 {
 		panic("callback function not found")
 	}
 
-	var args []interface{}
-
 	//获取rpc调用的参数
+	var args []interface{}
 	if len(_args) > 1 {
 		args = _args[:len(_args)-1]
 	}
@@ -362,39 +329,36 @@ func (c *Client) AsynCall(id interface{}, _args ...interface{}) {
 	case func(error): //只接收一个错误
 		//发起异步调用（内部）
 		err := c.asynCall(id, args, cb, 0)
-
 		//内部调用失败，直接调用回调
 		if err != nil {
 			cb.(func(error))(err)
 		}
 	case func(interface{}, error): //接收一个返回值和一个错误
 		err := c.asynCall(id, args, cb, 1)
-
 		if err != nil {
 			cb.(func(interface{}, error))(nil, err)
 		}
 	case func([]interface{}, error): //接收多个返回值和一个错误
 		err := c.asynCall(id, args, cb, 2)
-
 		if err != nil {
 			cb.(func([]interface{}, error))(nil, err)
 		}
-	default: //非法回调函数
+	default: //非法回调
 		panic("definition of callback function is invalid")
 	}
 }
 
 //执行回调
 func (c *Client) Cb(ri *RetInfo) {
-	//根据回调函数的类型，执行回调
+	//根据回调的类型，执行回调
 	switch ri.cb.(type) {
 	case func(error): //只接收一个错误
 		ri.cb.(func(error))(ri.err)
-	case func(interface{}, error): //接受一个返回值和一个错误
+	case func(interface{}, error): //接收一个返回值和一个错误
 		ri.cb.(func(interface{}, error))(ri.ret, ri.err)
 	case func([]interface{}, error): //接收多个返回值和一个错误
 		ri.cb.(func([]interface{}, error))(ri.ret.([]interface{}), ri.err)
-	default: //非法回调函数
+	default: //非法回调
 		panic("bug")
 	}
 
@@ -404,7 +368,7 @@ func (c *Client) Cb(ri *RetInfo) {
 
 //关闭rpc客户端
 func (c *Client) Close() {
-	//如果还有未处理的异步调用，取出异步返回值，执行回调
+	//还有未处理的异步调用，取出异步返回值，执行回调
 	for c.pendingAsynCall > 0 {
 		c.Cb(<-c.ChanAsynRet)
 	}

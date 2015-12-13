@@ -37,7 +37,6 @@ type agent struct {
 func (gate *Gate) Run(closeSig chan bool) {
 	//创建ws服务器
 	var wsServer *network.WSServer
-
 	//设置ws服务器相关参数
 	if gate.WSAddr != "" {
 		wsServer = new(network.WSServer)
@@ -48,7 +47,6 @@ func (gate *Gate) Run(closeSig chan bool) {
 		wsServer.HTTPTimeout = gate.HTTPTimeout                        //http连接超时时限
 		wsServer.NewAgent = func(conn *network.WSConn) network.Agent { //创建代理函数
 			a := &agent{conn: conn, gate: gate}
-
 			//代理rpc服务器，用于接受NewAgent和CloseAgentRPC调用
 			if gate.AgentChanRPC != nil {
 				gate.AgentChanRPC.Go("NewAgent", a)
@@ -60,7 +58,6 @@ func (gate *Gate) Run(closeSig chan bool) {
 
 	//创建tcp服务器
 	var tcpServer *network.TCPServer
-
 	//设置tcp服务器相关参数
 	if gate.TCPAddr != "" {
 		tcpServer = new(network.TCPServer)
@@ -72,7 +69,6 @@ func (gate *Gate) Run(closeSig chan bool) {
 		tcpServer.LittleEndian = gate.LittleEndian                       //大小端
 		tcpServer.NewAgent = func(conn *network.TCPConn) network.Agent { //创建代理函数
 			a := &agent{conn: conn, gate: gate}
-
 			//代理rpc服务器，用于接受NewAgent和CloseAgentRPC调用
 			if gate.AgentChanRPC != nil {
 				gate.AgentChanRPC.Go("NewAgent", a)
@@ -114,7 +110,6 @@ func (a *agent) Run() {
 	for {
 		//读取一条完整的消息
 		data, err := a.conn.ReadMsg()
-
 		//读取失败
 		if err != nil {
 			log.Debug("read message: %v", err)
@@ -125,7 +120,6 @@ func (a *agent) Run() {
 		if a.gate.Processor != nil {
 			//解码
 			msg, err := a.gate.Processor.Unmarshal(data)
-
 			//解码失败
 			if err != nil {
 				log.Debug("unmarshal message error: %v", err)
@@ -134,7 +128,6 @@ func (a *agent) Run() {
 
 			//路由，分发数据
 			err = a.gate.Processor.Route(msg, a)
-
 			//路由失败
 			if err != nil {
 				log.Debug("route message error: %v", err)
@@ -149,7 +142,6 @@ func (a *agent) OnClose() {
 	//rpc服务器不为空，打开一个rpc客户端，同步调用CloseAgent方法
 	if a.gate.AgentChanRPC != nil {
 		err := a.gate.AgentChanRPC.Open(0).Call0("CloseAgent", a)
-
 		if err != nil {
 			log.Error("chanrpc error: %v", err)
 		}
@@ -162,7 +154,6 @@ func (a *agent) WriteMsg(msg interface{}) {
 	if a.gate.Processor != nil {
 		//编码
 		data, err := a.gate.Processor.Marshal(msg)
-
 		//编码失败
 		if err != nil {
 			log.Error("marshal message %v error: %v", reflect.TypeOf(msg), err)

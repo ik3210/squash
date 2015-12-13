@@ -17,7 +17,7 @@ import (
 // Month        | Yes        | 1-12           | * / , -
 // Day of week  | Yes        | 0-6            | * / , -
 
-//cron表达式定义
+//cron表达式
 type CronExpr struct {
 	sec   uint64
 	min   uint64
@@ -32,13 +32,13 @@ func NewCronExpr(expr string) (cronExpr *CronExpr, err error) {
 	//用空格分割表达式
 	fields := strings.Fields(expr)
 
-	//数组长度为5或者6，因为Seconds不是强制设置的
+	//数组长度为5或者6（Seconds不是强制设置的）
 	if len(fields) != 5 && len(fields) != 6 {
 		err = fmt.Errorf("invalid expr %v: expected 5 or 6 fields, got %v", expr, len(fields))
 		return
 	}
 
-	//未设置Seconds，则自己在最前面添加一个0
+	//未设置Seconds，自己在最前面添加一个0
 	if len(fields) == 5 {
 		fields = append([]string{"0"}, fields...)
 	}
@@ -46,50 +46,43 @@ func NewCronExpr(expr string) (cronExpr *CronExpr, err error) {
 	//创建cron表达式
 	cronExpr = new(CronExpr)
 
-	/*解析字段 开始*/
+	/*解析字段开始*/
 	//Seconds
 	cronExpr.sec, err = parseCronField(fields[0], 0, 59)
-
 	if err != nil {
 		goto onError
 	}
 
 	//Minutes
 	cronExpr.min, err = parseCronField(fields[1], 0, 59)
-
 	if err != nil {
 		goto onError
 	}
 
 	//Hours
 	cronExpr.hour, err = parseCronField(fields[2], 0, 23)
-
 	if err != nil {
 		goto onError
 	}
 
 	//Day of month
 	cronExpr.dom, err = parseCronField(fields[3], 1, 31)
-
 	if err != nil {
 		goto onError
 	}
 
 	//Month
 	cronExpr.month, err = parseCronField(fields[4], 1, 12)
-
 	if err != nil {
 		goto onError
 	}
 
 	//Day of week
 	cronExpr.dow, err = parseCronField(fields[5], 0, 6)
-
 	if err != nil {
 		goto onError
 	}
-
-	/*解析字段 结束*/
+	/*解析字段结束*/
 
 	return
 
@@ -103,7 +96,7 @@ func parseCronField(field string, min int, max int) (cronField uint64, err error
 	//用逗号分割字段
 	fields := strings.Split(field, ",")
 
-	//遍历每个项，有6种形式：
+	// 6种形式：
 	// 1. *
 	// 2. num
 	// 3. num-num
@@ -111,18 +104,16 @@ func parseCronField(field string, min int, max int) (cronField uint64, err error
 	// 5. num/num (means num-max/num)
 	// 6. num-num/num
 	for _, field := range fields {
-		//用斜杠分割，获得范围和增幅
+		//用斜杠分割，获取范围和增幅
 		rangeAndIncr := strings.Split(field, "/")
-
 		//分割项数不大于2
 		if len(rangeAndIncr) > 2 {
 			err = fmt.Errorf("too many slashes: %v", field)
 			return
 		}
 
-		//使用中划线分割范围，获得范围的起始值和结束值
+		//用中划线分割范围，获得范围的起始值和结束值
 		startAndEnd := strings.Split(rangeAndIncr[0], "-")
-
 		//分割项数不大于2
 		if len(startAndEnd) > 2 {
 			err = fmt.Errorf("too many hyphens: %v", rangeAndIncr[0])
@@ -144,7 +135,7 @@ func parseCronField(field string, min int, max int) (cronField uint64, err error
 		} else {
 			//起始值转化为整数
 			start, err = strconv.Atoi(startAndEnd[0])
-
+			//转化失败
 			if err != nil {
 				err = fmt.Errorf("invalid range: %v", rangeAndIncr[0])
 				return
@@ -157,9 +148,9 @@ func parseCronField(field string, min int, max int) (cronField uint64, err error
 					end = start
 				}
 			} else { //形式3或6
-				//获取结束值
+				//结束值转化为整数
 				end, err = strconv.Atoi(startAndEnd[1])
-
+				//转化失败
 				if err != nil {
 					err = fmt.Errorf("invalid range: %v", rangeAndIncr[0])
 					return
@@ -191,9 +182,9 @@ func parseCronField(field string, min int, max int) (cronField uint64, err error
 		if len(rangeAndIncr) == 1 { //没有增幅，设置增幅为1
 			incr = 1
 		} else { //有增幅
-			//获取增幅
+			//增幅转化为整数
 			incr, err = strconv.Atoi(rangeAndIncr[1])
-
+			//转化失败
 			if err != nil {
 				err = fmt.Errorf("invalid increment: %v", rangeAndIncr[1])
 				return
@@ -257,9 +248,9 @@ func (e *CronExpr) matchDay(t time.Time) bool {
 func (e *CronExpr) Next(t time.Time) time.Time {
 	//计算下一秒时间
 	t = t.Truncate(time.Second).Add(time.Second)
-	//保存当前的年份
+	//保存当前年份
 	year := t.Year()
-	//标志是否已初始化（新建一个时间）
+	//标志是否已初始化（新建一个时间就是初始化）
 	initFlag := false
 
 retry:
@@ -270,9 +261,8 @@ retry:
 	}
 
 	//Month
-	//没有匹配到，就执行循环，匹配的话就跳过
 	for 1<<uint(t.Month())&e.month == 0 {
-		//没有初始化，标志为已初始化并新建一个时间
+		//没有初始化，标志为已初始化，新建一个时间
 		if !initFlag {
 			initFlag = true
 			t = time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, t.Location())
@@ -280,7 +270,6 @@ retry:
 
 		//加一个月
 		t = t.AddDate(0, 1, 0)
-
 		//已经到了1月（已经遍历了从当前月份到12月份），跳出循环，继续匹配从1月到12月份
 		if t.Month() == time.January {
 			goto retry
@@ -295,7 +284,6 @@ retry:
 		}
 
 		t = t.AddDate(0, 0, 1)
-
 		if t.Day() == 1 {
 			goto retry
 		}
@@ -309,7 +297,6 @@ retry:
 		}
 
 		t = t.Add(time.Hour)
-
 		if t.Hour() == 0 {
 			goto retry
 		}
@@ -323,7 +310,6 @@ retry:
 		}
 
 		t = t.Add(time.Minute)
-
 		if t.Minute() == 0 {
 			goto retry
 		}
@@ -337,7 +323,6 @@ retry:
 		}
 
 		t = t.Add(time.Second)
-
 		if t.Second() == 0 {
 			goto retry
 		}

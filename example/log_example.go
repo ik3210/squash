@@ -12,9 +12,8 @@ func main() {
 	log.Error("My name is %v", name)
 	//log.Fatal("My name is %v", name)
 
-	// 日志级别设为realease，低于realease的日志不会输出
+	//日志级别设为realease，低于realease的日志不会输出
 	logger, err := log.New("release", "")
-
 	if err != nil {
 		return
 	}

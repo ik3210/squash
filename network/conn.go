@@ -4,6 +4,7 @@ import (
 	"net"
 )
 
+//网络连接接口
 type Conn interface {
 	ReadMsg() ([]byte, error)      //读取消息
 	WriteMsg(args ...[]byte) error //发送消息

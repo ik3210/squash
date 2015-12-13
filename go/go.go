@@ -34,7 +34,6 @@ func New(l int) *Go {
 	g := new(Go)
 	//创建回调管道
 	g.ChanCb = make(chan func(), l)
-
 	return g
 }
 
@@ -49,7 +48,6 @@ func (g *Go) Go(f func(), cb func()) {
 		defer func() {
 			//当f执行完成后，将回调发送到回调管道中
 			g.ChanCb <- cb
-
 			//处理异常
 			if r := recover(); r != nil {
 				if conf.LenStackBuf > 0 { //配置了调用栈踪迹缓冲长度，将当前goroutine的调用栈踪迹格式化后写入到buf中
@@ -72,7 +70,6 @@ func (g *Go) Cb(cb func()) {
 	defer func() {
 		//减少待处理回调函数计数器
 		g.pendingGo--
-
 		//处理异常
 		if r := recover(); r != nil {
 			if conf.LenStackBuf > 0 { //配置了调用栈踪迹缓冲长度，将当前goroutine的调用栈踪迹格式化后写入到buf中
@@ -107,7 +104,6 @@ func (g *Go) NewLinearContext() *LinearContext {
 	c.g = g
 	//创建一个链表
 	c.linearGo = list.New()
-
 	return c
 }
 
@@ -115,7 +111,6 @@ func (g *Go) NewLinearContext() *LinearContext {
 func (c *LinearContext) Go(f func(), cb func()) {
 	//增加待处理回调函数计数器
 	c.g.pendingGo++
-
 	//链表加锁
 	c.mutexLinearGo.Lock()
 	//向链表添加元素
@@ -140,7 +135,6 @@ func (c *LinearContext) Go(f func(), cb func()) {
 		defer func() {
 			//当f执行完成后，将回调发送到回调管道中
 			c.g.ChanCb <- e.cb
-
 			//处理异常
 			if r := recover(); r != nil {
 				if conf.LenStackBuf > 0 { //配置了调用栈踪迹缓冲长度，将当前goroutine的调用栈踪迹格式化后写入到buf中

@@ -16,7 +16,7 @@ const (
 	debugLevel   //非关键日志
 	releaseLevel //关键日志
 	errorLevel   //错误日志
-	fatalLevel   //致命错误日志。每次输出 Fatal 日志之后游戏服务器进程就会结束
+	fatalLevel   //致命错误日志。每次输出Fatal日志之后游戏服务器进程就会结束
 )
 
 //日志输出前缀字符串
@@ -38,7 +38,7 @@ type Logger struct {
 func New(strLevel string, pathname string) (*Logger, error) {
 	var level int
 
-	//根据传入的日志级别，设置日志级别
+	//设置日志级别
 	switch strings.ToLower(strLevel) {
 	case "debug":
 		level = debugLevel
@@ -69,7 +69,6 @@ func New(strLevel string, pathname string) (*Logger, error) {
 
 		//创建文件
 		file, err := os.Create(path.Join(pathname, filename))
-
 		//创建失败
 		if err != nil {
 			return nil, err
@@ -109,12 +108,12 @@ func (logger *Logger) Close() {
 
 //上层logger输出日志
 func (logger *Logger) doPrintf(level int, printLevel string, format string, a ...interface{}) {
-	//日志级别小于设定的日志级别，不输出
+	//日志级别小于设定的日志级别
 	if level < logger.level {
 		return
 	}
 
-	//底层logger为空，抛出错误
+	//底层logger为空
 	if logger.baseLogger == nil {
 		panic("logger closed")
 	}
@@ -149,10 +148,10 @@ func (logger *Logger) Fatal(format string, a ...interface{}) {
 	logger.doPrintf(fatalLevel, printFatalLevel, format, a...)
 }
 
-//创建一个默认的logger，日志级别为debug（使用者不必自己定义logger，可以直接引入包，然后使用包导出函数）
+//创建一个默认的logger，日志级别为debug（使用者不必自定义logger，直接引入包就可以输出日志）
 var gLogger, _ = New("debug", "")
 
-//包导出函数定义，传入一个logger替换默认的gLogger
+//包导出函数，传入一个logger替换默认的gLogger
 func Export(logger *Logger) {
 	if logger != nil {
 		gLogger = logger

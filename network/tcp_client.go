@@ -18,13 +18,11 @@ type TCPClient struct {
 	conns           ConnSet              //连接集合
 	wg              sync.WaitGroup       //等待组
 	closeFlag       bool                 //关闭标志
-
-	//消息解析器
-	LenMsgLen    int        //存储消息长度信息所占用的字节数
-	MinMsgLen    uint32     //最小消息长度
-	MaxMsgLen    uint32     //最大消息长度
-	LittleEndian bool       //是否小端
-	msgParser    *MsgParser //消息解析器
+	LenMsgLen       int                  //存储消息长度信息所占用的字节数
+	MinMsgLen       uint32               //最小消息长度
+	MaxMsgLen       uint32               //最大消息长度
+	LittleEndian    bool                 //是否小端
+	msgParser       *MsgParser           //消息解析器
 }
 
 //启动tcp客户端
@@ -79,7 +77,6 @@ func (client *TCPClient) init() {
 	client.conns = make(ConnSet)
 	//取消关闭标记
 	client.closeFlag = false
-
 	//创建消息解析器
 	msgParser := NewMsgParser()
 	//设置消息长度

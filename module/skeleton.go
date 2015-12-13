@@ -13,11 +13,11 @@ import (
 type Skeleton struct {
 	GoLen              int               //Go管道长度
 	TimerDispatcherLen int               //定时器分发器管道长度
-	ChanRPCServer      *chanrpc.Server   //RPC服务器引用（外部传入）
+	ChanRPCServer      *chanrpc.Server   //rpc服务器引用（外部传入）
 	g                  *g.Go             //leaf的Go机制
 	dispatcher         *timer.Dispatcher //定时器分发器
-	server             *chanrpc.Server   //RPC服务器引用(内部引用)
-	commandServer      *chanrpc.Server   //命令RPC服务器引用
+	server             *chanrpc.Server   //rpc服务器引用(内部引用)
+	commandServer      *chanrpc.Server   //命令rpc服务器引用
 }
 
 //初始化
@@ -26,6 +26,7 @@ func (s *Skeleton) Init() {
 	if s.GoLen <= 0 {
 		s.GoLen = 0
 	}
+
 	//检查定时器分发器管道长度
 	if s.TimerDispatcherLen <= 0 {
 		s.TimerDispatcherLen = 0
@@ -34,10 +35,11 @@ func (s *Skeleton) Init() {
 	s.g = g.New(s.GoLen)                                     //创建Go
 	s.dispatcher = timer.NewDispatcher(s.TimerDispatcherLen) //创建分发器
 	s.server = s.ChanRPCServer                               //外部传入的，内部引用
-
-	if s.server == nil { //外部传入的为空
-		s.server = chanrpc.NewServer(0) //内部创建一个
+	//外部传入的为空，内部创建一个
+	if s.server == nil {
+		s.server = chanrpc.NewServer(0)
 	}
+
 	s.commandServer = chanrpc.NewServer(0) //创建命令RPC服务器
 }
 

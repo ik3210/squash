@@ -93,26 +93,6 @@ func (client *WSClient) init() {
 	}
 }
 
-//拨号连接
-func (client *WSClient) dial() *websocket.Conn {
-	for {
-		//创建一个ws连接
-		conn, _, err := client.dialer.Dial(client.Addr, nil)
-
-		//连接成功或设置了关闭标记，返回对象并结束循环
-		//因为即使设置了关闭标记，但是连接还是建立的，这时候要让后面的流程（connect()函数里）来把这个连接关闭掉，这样对方才知道连接断开了
-		if err == nil || client.closeFlag {
-			return conn
-		}
-
-		//连接失败，输出日志，在连接间隔后重新尝试连接
-		log.Release("connect to %v error: %v", client.Addr, err)
-		time.Sleep(client.ConnectInterval)
-
-		continue
-	}
-}
-
 //创建一个ws客户端连接
 func (client *WSClient) connect() {
 	//延迟 等待组-1
@@ -120,7 +100,6 @@ func (client *WSClient) connect() {
 
 	//拨号连接
 	conn := client.dial()
-
 	//连接失败
 	if conn == nil {
 		return
@@ -129,20 +108,15 @@ func (client *WSClient) connect() {
 	//设置读取消息的最大长度
 	conn.SetReadLimit(int64(client.MaxMsgLen))
 
-	//加锁
-	//因为会从不同的goroutine中访问client.conns
-	//比如从外部goroutine中调用client.Close
-	//或者在新的goroutine中运行代理执行清理工作
+	//加锁，避免其他goroutine访问client.conns
 	client.Lock()
-
 	//设置了关闭标志，解锁，取消连接
 	if client.closeFlag {
 		client.Unlock()
 		conn.Close()
 		return
 	}
-
-	//将新来的连接添加到连接集合
+	//将新连接添加到连接集合
 	client.conns[conn] = struct{}{} //struct{}为类型，第二个{}为初始化，只不过是空值而已
 	//解锁
 	client.Unlock()
@@ -166,6 +140,24 @@ func (client *WSClient) connect() {
 	//关闭代理
 	agent.OnClose()
 	/*清理工作结束*/
+}
+
+//拨号连接
+func (client *WSClient) dial() *websocket.Conn {
+	for {
+		//创建一个ws连接
+		conn, _, err := client.dialer.Dial(client.Addr, nil)
+		//连接成功或设置了关闭标记，返回对象并结束循环（即使设置了关闭标记，连接还是建立的，要在后面的connect()里把这个连接关闭掉，这样对方才知道连接断开了）
+		if err == nil || client.closeFlag {
+			return conn
+		}
+
+		//连接失败，输出日志，在连接间隔后重新尝试连接
+		log.Release("connect to %v error: %v", client.Addr, err)
+		time.Sleep(client.ConnectInterval)
+
+		continue
+	}
 }
 
 //关闭ws客户端

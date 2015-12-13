@@ -22,8 +22,7 @@ func main() {
 
 	//创建一个记录文件
 	rf, err := recordfile.New(Record{})
-
-	//创建失败，返回
+	//创建失败
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -31,8 +30,7 @@ func main() {
 
 	//读取记录文件
 	err = rf.Read("recordfile_example.txt")
-
-	//读取失败，返回
+	//读取失败
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -45,7 +43,7 @@ func main() {
 	}
 
 	//输出数字索引为2的记录的字符串索引
-	r := rf.Index(2).(*Record)
+	r := rf.Index(0, 2).(*Record)
 	fmt.Println(r.Str)
 
 	//同上
